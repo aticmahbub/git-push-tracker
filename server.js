@@ -23,7 +23,8 @@ async function hasCommittedToday(username) {
             `https://api.github.com/users/${username}/events/public`,
             {
                 headers: {
-                    'User-Agent': 'GitHub-Commit-Checker',
+                    Authorization: `token ${process.env.GITHUB_TOKEN}`,
+                    'User-Agent': 'git-push-tracker',
                     Accept: 'application/vnd.github.v3+json',
                 },
             },
