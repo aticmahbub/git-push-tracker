@@ -12,7 +12,12 @@ const serverStart = DateTime.local().setZone('Asia/Dhaka');
 // GET /
 router.get('/', async (req, res) => {
     const committed = await hasCommittedToday(GITHUB_USERNAME);
-    res.json({pushedToday: committed});
+    if (committed) {
+        res.send('You have pushed today. Keep pushing everyday!!!');
+    }
+    {
+        res.send("You haven't pushed yet. Please push immediately");
+    }
 });
 
 // GET /status
