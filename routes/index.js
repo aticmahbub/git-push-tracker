@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 require('dotenv').config();
 const {DateTime} = require('luxon');
 const {sendReminder} = require('../services/reminders');
@@ -7,19 +8,21 @@ const {
     resetWeeklyLog,
     hasCommittedToday,
 } = require('../services/commitChecker');
+const {getPingLogs, logPing} = require('../services/pingLogger');
 
-const router = express.Router();
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME;
 let lastReminderTime = null;
 const serverStart = DateTime.local().setZone('Asia/Dhaka');
 
 // PING
-router.get('/ping', (req, res) => {
-    console.log(
-        'Ping received at',
-        new Date().toLocaleString('en-BD', {timeZone: 'Asia/Dhaka'}),
-    );
-    res.send('OK');
+router.get('/ping', async (req, res) => {
+    const log = await logPing(req);
+    console.log('[PING]', log);
+    res.send('Pong with location logged!');
+});
+
+router.get('/ping-logs', (req, res) => {
+    res.json(getPingLogs());
 });
 // GET /
 router.get('/', async (req, res) => {
