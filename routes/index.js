@@ -1,8 +1,12 @@
 const express = require('express');
+require('dotenv').config();
 const {DateTime} = require('luxon');
-const {hasCommittedToday} = require('../services/commitChecker');
 const {sendReminder} = require('../services/reminders');
-const {sendWeeklySummary} = require('../services/summary');
+const {
+    getWeeklyLog,
+    resetWeeklyLog,
+    hasCommittedToday,
+} = require('../services/commitChecker');
 
 const router = express.Router();
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME;
@@ -13,24 +17,32 @@ const serverStart = DateTime.local().setZone('Asia/Dhaka');
 router.get('/', async (req, res) => {
     const committed = await hasCommittedToday(GITHUB_USERNAME);
     if (committed) {
-        res.send('You have pushed today. Keep pushing everyday!!!');
-    }
-    {
-        res.send("You haven't pushed yet. Please push immediately");
+        return res.send('You have pushed today. Keep pushing everyday!!!');
+    } else {
+        return res.send("You haven't pushed yet. Please push immediately");
     }
 });
 
 // GET /status
 router.get('/status', async (req, res) => {
-    const now = DateTime.local().setZone('Asia/Dhaka');
-    const committed = await hasCommittedToday(GITHUB_USERNAME);
-    res.json({
-        date: now.toISODate(),
-        pushedToday: committed,
-        lastReminderSentAt: lastReminderTime
-            ? lastReminderTime.toFormat('HH:mm:ss')
-            : 'Never',
-    });
+    try {
+        const now = DateTime.local().setZone('Asia/Dhaka');
+        const {committed, count, commits} =
+            await hasCommittedToday(GITHUB_USERNAME);
+
+        return res.json({
+            date: now.toISODate(),
+            pushedToday: committed,
+            commitCount: count,
+            commits, // array of commit objects: { repo, message, timestamp }
+            lastReminderSentAt: lastReminderTime
+                ? lastReminderTime.toFormat('HH:mm:ss')
+                : 'Never',
+        });
+    } catch (error) {
+        console.error('Error in /status route:', error.message);
+        return res.status(500).json({error: 'Unable to fetch status'});
+    }
 });
 
 // GET /remind
@@ -42,8 +54,40 @@ router.get('/remind', (req, res) => {
 
 // GET /summary
 router.get('/summary', (req, res) => {
-    sendWeeklySummary();
-    res.json({message: 'Manual weekly summary sent'});
+    const weeklyLog = getWeeklyLog();
+
+    if (weeklyLog.length === 0) {
+        return res.json({message: 'No commits made this week.'});
+    }
+
+    // Generate summary per day
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const summary = {};
+
+    weeklyLog.forEach((commit) => {
+        const date = DateTime.fromISO(commit.timestamp, {zone: 'Asia/Dhaka'});
+        const day = days[date.weekday % 7]; // Sunday = 0
+        if (!summary[day]) summary[day] = [];
+        summary[day].push(`• [${commit.repo}] ${commit.message}`);
+    });
+
+    let message = `📅 *Weekly Commit Summary*\n\n`;
+
+    days.forEach((day) => {
+        if (summary[day]) {
+            message += `✅ *${day}*:\n${summary[day].join('\n')}\n\n`;
+        } else {
+            message += `❌ *${day}*: No commits\n\n`;
+        }
+    });
+
+    // Send the message using Twilio or log it
+    console.log(message); // You can replace this with your sendWhatsApp(message)
+
+    // Reset the log after sending
+    resetWeeklyLog();
+
+    res.json({message: 'Weekly summary sent successfully.', summary});
 });
 
 // GET /uptime
