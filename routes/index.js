@@ -15,6 +15,10 @@ const serverStart = DateTime.local().setZone('Asia/Dhaka');
 
 // PING
 router.get('/ping', (req, res) => {
+    console.log(
+        'Ping received at',
+        new Date().toLocaleString('en-BD', {timeZone: 'Asia/Dhaka'}),
+    );
     res.send('OK');
 });
 // GET /
