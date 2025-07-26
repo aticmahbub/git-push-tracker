@@ -13,6 +13,10 @@ const GITHUB_USERNAME = process.env.GITHUB_USERNAME;
 let lastReminderTime = null;
 const serverStart = DateTime.local().setZone('Asia/Dhaka');
 
+// PING
+router.get('/ping', (req, res) => {
+    res.send('OK');
+});
 // GET /
 router.get('/', async (req, res) => {
     const committed = await hasCommittedToday(GITHUB_USERNAME);
