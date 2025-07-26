@@ -1,0 +1,15 @@
+name: Keep Render App Alive (7:55PM–12AM BDT)
+
+on:
+    schedule:
+        - cron: '55 13 * * *' # 7:55 PM BDT
+        - cron: '*/10 14-17 * * *' # 8:00 PM to 11:59 PM BDT, every 10 mins
+    workflow_dispatch:
+
+jobs:
+    ping:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Ping Render App
+              run: curl -s https://github-push-notifier.onrender.com/ping
